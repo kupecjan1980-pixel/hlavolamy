@@ -383,6 +383,11 @@ body::before{content:"";position:fixed;inset:-10%;z-index:-1;pointer-events:none
 /* Pevná mřížka: řádky vždy stejně vysoké, i když v řádku nejsou čísla */
 .sudoku,.bboard{grid-template-columns:repeat(9,minmax(0,1fr));grid-template-rows:repeat(9,minmax(0,1fr))}
 .cell,.bc{min-width:0;min-height:0;line-height:1;overflow:hidden}
+/* Záloha her */
+.bk h2{font-size:1.35rem;color:var(--accent)}
+.bk-restore{display:flex;flex-direction:column;gap:10px}
+#bk-msg{text-align:center;font-size:.95rem;min-height:1.3em}
+#bk-msg:empty{display:none}
 /* Plynulost: pozadí na vlastní vrstvě, tažené a otáčené věci jen posouvané, hrací plochy se překreslují samy */
 body::before{transform:translateZ(0);will-change:transform}
 .ghost{left:0;top:0;will-change:transform}
@@ -442,6 +447,24 @@ body::before{transform:translateZ(0);will-change:transform}
       <div class="upd">
         <button class="btn" id="upd-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>Zkontrolovat aktualizace</button>
         <p class="muted" id="upd-msg" aria-live="polite"></p>
+      </div>
+      <div class="panel bk" id="bk">
+        <h2>Záloha her</h2>
+        <p class="muted">Uložte si zálohu všech rozehraných her a bodů – třeba do Poznámek, do Souborů nebo si ji pošlete e‑mailem. Když smažete ikonku nebo budete mít nový telefon, hry z ní obnovíte.</p>
+        <div class="actions">
+          <button class="btn primary" id="bk-save">Zálohovat hry</button>
+          <button class="btn" id="bk-open">Obnovit ze zálohy</button>
+        </div>
+        <div class="bk-restore" id="bk-restore" hidden>
+          <p class="muted">Vložte sem text zálohy (podržte prst v poli a dejte Vložit), nebo vyberte uložený soubor zálohy.</p>
+          <textarea id="bk-text" rows="4" placeholder="Sem vložte zálohu…"></textarea>
+          <div class="actions">
+            <button class="btn" id="bk-file-btn">Vybrat soubor</button>
+            <button class="btn primary" id="bk-do">Obnovit hry</button>
+          </div>
+          <input type="file" id="bk-file" accept=".txt,text/plain" hidden>
+        </div>
+        <p class="muted" id="bk-msg" aria-live="polite"></p>
       </div>
       <p class="tip"><b>Ikonka na ploše iPhonu:</b> otevřete tuto stránku v Safari, klepněte na Sdílet (čtvereček se šipkou) a vyberte „Přidat na plochu“.</p>
     </div>
@@ -1106,7 +1129,7 @@ if(!B)bNew();else bRender();
 
 
 /* ---------- Aktualizace ---------- */
-const APP_VERSION='2026-11-08.2';
+const APP_VERSION='2026-11-08.3';
 const updMsg=t=>{$('#upd-msg').textContent=t};
 updMsg('Verze z 8. 11. 2026');
 $('#upd-btn').onclick=async()=>{const b=$('#upd-btn');if(b.classList.contains('spin'))return;
@@ -1298,5 +1321,43 @@ new MutationObserver(later).observe(document.body,{childList:true,subtree:true,a
 (function(){try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 var ok=false;try{localStorage.setItem('hl__t','1');ok=localStorage.getItem('hl__t')==='1';localStorage.removeItem('hl__t')}catch(e){}
 if(!ok){var w=document.getElementById('savewarn');if(w)w.hidden=false}})();
+</script>
+<script>
+/* ---------- Záloha a obnovení her ---------- */
+(function(){
+const $=s=>document.getElementById(s),msg=t=>{$('bk-msg').textContent=t};
+const MARK='HLZ1:';
+const enc=str=>btoa(unescape(encodeURIComponent(str))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const dec=c=>decodeURIComponent(escape(atob(c.replace(/-/g,'+').replace(/_/g,'/'))));
+function collect(){const d={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('hl_')&&k!=='hl__t')d[k]=localStorage.getItem(k)}return d}
+function backupText(){const now=new Date(),d=collect();
+  return '🍓 Záloha Jahodových hlavolamů z '+now.toLocaleDateString('cs-CZ')+' '+now.toLocaleTimeString('cs-CZ',{hour:'2-digit',minute:'2-digit'})+
+    '\nObnovení: aplikace → Záloha her → Obnovit ze zálohy, vložit celý tento text.\n\n'+MARK+enc(JSON.stringify({v:1,ts:now.getTime(),d}))}
+$('bk-save').onclick=async()=>{let text;
+  try{text=backupText()}catch(e){msg('Zálohu se nepodařilo vytvořit.');return}
+  const name='hlavolamy-zaloha-'+new Date().toISOString().slice(0,10)+'.txt';
+  try{const f=new File([text],name,{type:'text/plain'});
+    if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:'Záloha hlavolamů'});msg('Záloha je hotová. Uložte si ji na bezpečné místo.');return}
+    if(navigator.share){await navigator.share({title:'Záloha hlavolamů',text});msg('Záloha je hotová. Uložte si ji na bezpečné místo.');return}
+  }catch(e){if(e&&e.name==='AbortError'){msg('Zálohování zrušeno.');return}}
+  try{await navigator.clipboard.writeText(text);msg('Záloha je zkopírovaná. Vložte ji třeba do Poznámek.');return}catch(e){}
+  $('bk-restore').hidden=false;$('bk-text').value=text;$('bk-text').select();msg('Zkopírujte si text zálohy z pole výše.')};
+$('bk-open').onclick=()=>{const r=$('bk-restore');r.hidden=!r.hidden;msg('');if(!r.hidden)$('bk-text').focus()};
+$('bk-file-btn').onclick=()=>$('bk-file').click();
+$('bk-file').onchange=async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;
+  try{$('bk-text').value=await f.text();msg('Soubor načten. Klepněte na Obnovit hry.')}catch(_){msg('Soubor se nepodařilo přečíst.')}e.target.value=''};
+$('bk-do').onclick=()=>{const m=/HLZ1:([A-Za-z0-9_-]+)/.exec($('bk-text').value||'');
+  if(!m){msg('V textu není záloha. Vložte celý text zálohy.');return}
+  let b;try{b=JSON.parse(dec(m[1]))}catch(_){msg('Záloha je poškozená nebo neúplná.');return}
+  if(!b||typeof b.d!=='object'){msg('Záloha je poškozená nebo neúplná.');return}
+  const keys=Object.keys(b.d).filter(k=>k.startsWith('hl_')&&typeof b.d[k]==='string');
+  if(!keys.length){msg('Záloha je prázdná.');return}
+  const when=b.ts?new Date(b.ts).toLocaleDateString('cs-CZ'):'';
+  if(!confirm('Obnovit hry ze zálohy'+(when?' z '+when:'')+'?\nSoučasné rozehrané hry a body se nahradí zálohou.'))return;
+  try{Object.keys(collect()).forEach(k=>localStorage.removeItem(k));keys.forEach(k=>localStorage.setItem(k,b.d[k]))}
+  catch(_){msg('Obnovení se nepovedlo. Zkuste to znovu.');return}
+  try{localStorage.setItem('hl_screen',JSON.stringify('home'))}catch(_){}
+  msg('Hry obnoveny. Načítám…');setTimeout(()=>location.reload(),600)};
+})();
 </script>
 </body></html>
