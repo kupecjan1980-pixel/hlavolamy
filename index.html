@@ -380,6 +380,9 @@ body::before{content:"";position:fixed;inset:-10%;z-index:-1;pointer-events:none
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) :is(.btn:not(.primary):not(.warn),.key,.back,.help,.stat,.tile,.chips button:not([aria-pressed="true"])){
   box-shadow:inset 0 0 8px rgba(0,0,0,.32),inset -2px -3px 6px rgba(0,0,0,.35),inset 0 1.5px 1px rgba(255,255,255,.45),
     inset 1px 2px 4px rgba(255,255,255,.08),inset 0 -1.5px 1.5px rgba(255,255,255,.2),inset 0 0 0 1px rgba(255,255,255,.08),0 4px 10px rgba(0,0,0,.5)}}
+/* Pevná mřížka: řádky vždy stejně vysoké, i když v řádku nejsou čísla */
+.sudoku,.bboard{grid-template-columns:repeat(9,minmax(0,1fr));grid-template-rows:repeat(9,minmax(0,1fr))}
+.cell,.bc{min-width:0;min-height:0;line-height:1;overflow:hidden}
 /* Plynulost: pozadí na vlastní vrstvě, tažené a otáčené věci jen posouvané, hrací plochy se překreslují samy */
 body::before{transform:translateZ(0);will-change:transform}
 .ghost{left:0;top:0;will-change:transform}
@@ -1103,7 +1106,7 @@ if(!B)bNew();else bRender();
 
 
 /* ---------- Aktualizace ---------- */
-const APP_VERSION='2026-11-08.1';
+const APP_VERSION='2026-11-08.2';
 const updMsg=t=>{$('#upd-msg').textContent=t};
 updMsg('Verze z 8. 11. 2026');
 $('#upd-btn').onclick=async()=>{const b=$('#upd-btn');if(b.classList.contains('spin'))return;
