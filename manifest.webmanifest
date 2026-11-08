@@ -1,0 +1,23 @@
+{
+ "name": "Jahodové hlavolamy",
+ "short_name": "Hlavolamy",
+ "lang": "cs",
+ "start_url": "./",
+ "scope": "./",
+ "display": "standalone",
+ "background_color": "#FFF2F3",
+ "theme_color": "#C8213F",
+ "icons": [
+  {
+   "src": "icon-180.png",
+   "sizes": "180x180",
+   "type": "image/png"
+  },
+  {
+   "src": "icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any"
+  }
+ ]
+}
