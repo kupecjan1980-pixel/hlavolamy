@@ -388,6 +388,8 @@ body::before{content:"";position:fixed;inset:-10%;z-index:-1;pointer-events:none
 .bk-restore{display:flex;flex-direction:column;gap:10px}
 #bk-msg{text-align:center;font-size:.95rem;min-height:1.3em}
 #bk-msg:empty{display:none}
+.w-play,.w-done{display:flex;flex-direction:column;gap:18px}
+.w-play[hidden],.w-done[hidden]{display:none}
 /* Plynulost: pozadí na vlastní vrstvě, tažené a otáčené věci jen posouvané, hrací plochy se překreslují samy */
 body::before{transform:translateZ(0);will-change:transform}
 .ghost{left:0;top:0;will-change:transform}
@@ -552,6 +554,11 @@ body::before{transform:translateZ(0);will-change:transform}
         <div class="stat"><small>Bonus</small><b id="w-bonus">0</b></div>
       </div>
       <div class="wgrid" id="w-grid"></div>
+      <div class="w-done" id="w-done" hidden>
+        <p class="wmsg" style="margin:0">Úroveň je hotová – všechna slova vidíte nahoře.</p>
+        <button class="btn primary" id="w-next">Další úroveň</button>
+      </div>
+      <div class="w-play" id="w-play">
       <div class="wprev" id="w-prev" aria-live="polite"></div>
       <p class="wmsg" id="w-msg"></p>
       <div class="wheel" id="w-wheel"></div>
@@ -563,6 +570,7 @@ body::before{transform:translateZ(0);will-change:transform}
       <div class="actions">
         <button class="btn" id="w-shuffle">Zamíchat</button>
         <button class="btn" id="w-hint">Nápověda</button>
+      </div>
       </div>
     </div>
   </section>
@@ -923,6 +931,7 @@ function wRender(){const L=WS.layout,g=$('#w-grid');
     if(solved.has(key)){d.classList.add('on');d.textContent=ch}else if(rev.has(key)){d.classList.add('hint');d.textContent=ch}
     g.appendChild(d)});
   $('#w-level').textContent=WS.lv+1;$('#w-count').textContent=WS.found.length+' z '+L.words.length;$('#w-bonus').textContent=(WS.bonus||[]).length;
+  $('#w-done').hidden=!WS.doneOk;$('#w-play').hidden=!!WS.doneOk;
 }
 function wPos(i){const n=WS.letters.length,a=-Math.PI/2+i*2*Math.PI/n,r=n>8?39:n>6?37:34;return [50+r*Math.cos(a),50+r*Math.sin(a)]}
 function wWheel(){const wh=$('#w-wheel'),n=WS.letters.length,size=n>8?18:n>6?22:26;wh.classList.toggle('many',n>8);
@@ -941,7 +950,7 @@ function wSubmit(){const word=wSel.map(i=>WS.letters[i]).join('');wSel=[];wSelRe
   else if(words.includes(word)){WS.found.push(word);const pts=word.length*10;addPts('slova',pts);wMsg('Výborně! '+word+' +'+pts);wSave();wRender();wDone()}
   else if(WX.has(low)||WRANK.has(low)){WS.bonus.push(word);const pts=word.length*5;addPts('slova',pts);wMsg('Bonusové slovo '+word+' +'+pts);wSave();wRender()}
   else{wMsg(word+' tu není');const p=$('#w-prev');p.textContent=word;p.classList.remove('shake');void p.offsetWidth;p.classList.add('shake');setTimeout(()=>{p.classList.remove('shake');wSelRender()},500)}}
-function wDone(){if(WS.found.length<WS.layout.words.length||WS.doneOk)return;WS.doneOk=1;const lp=50+WS.lv*5;addPts('slova',lp);bestOnly('slova',WS.lv+1);wSave();
+function wDone(){if(WS.found.length<WS.layout.words.length||WS.doneOk)return;WS.doneOk=1;const lp=50+WS.lv*5;addPts('slova',lp);bestOnly('slova',WS.lv+1);wSave();wRender();
   setTimeout(()=>dialog('Úroveň '+(WS.lv+1)+' hotová!','Všechna slova nalezena'+(WS.hints?' (s '+WS.hints+'× nápovědou)':'')+'. Za úroveň máte +'+lp+' bodů.',
     [['Další úroveň','primary',()=>wNew(WS.lv+1)],['Zpět na hry','',()=>show('home')]]),400)}
 const wh=$('#w-wheel');
@@ -956,6 +965,7 @@ wh.addEventListener('pointermove',onFrame(e=>{if(!wDrag)return;const r=wh.getBou
 const wUp=()=>{if(wDrag&&wDrag.moved)wSubmit();else wSelRender();wDrag=null};
 wh.addEventListener('pointerup',wUp);wh.addEventListener('pointercancel',()=>{wDrag=null;wSelRender()});
 $('#w-try').onclick=wSubmit;
+$('#w-next').onclick=()=>wNew(WS.lv+1);
 $('#w-clear').onclick=()=>{wSel=[];wSelRender()};
 $('#w-shuffle').onclick=()=>{let l;do{l=shuffle(WS.letters.slice())}while(l.join('')===WS.letters.join('')&&l.length>2);WS.letters=l;wSel=[];wSave();wWheel()};
 $('#w-hint').onclick=()=>{const shown=wShown(),opts=[];
@@ -1129,7 +1139,7 @@ if(!B)bNew();else bRender();
 
 
 /* ---------- Aktualizace ---------- */
-const APP_VERSION='2026-11-08.3';
+const APP_VERSION='2026-11-08.4';
 const updMsg=t=>{$('#upd-msg').textContent=t};
 updMsg('Verze z 8. 11. 2026');
 $('#upd-btn').onclick=async()=>{const b=$('#upd-btn');if(b.classList.contains('spin'))return;
